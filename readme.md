@@ -1,4 +1,4 @@
-# Project Name: EPUB Footnote Enhancer
+# EPUB Footnote Enhancer
 
 This is a Python script for processing footnotes in EPUB e-books. It converts footnotes into popup footnotes and optionally adds a link to jump back to the footnote reference.
 
