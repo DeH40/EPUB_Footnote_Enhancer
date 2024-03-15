@@ -8,7 +8,12 @@ from tqdm import tqdm
 
 # Global variable to determine if a link to jump back to the footnote is needed
 need_jump = False
-
+# Global variable to determine if the script should automatically find footnote tags
+auto_find_footnote_tags = True
+# List of some possible selectors to obtain footnotes
+foot_ref_tags_selectors = ['a.footnote-ref', 'a.footnote', 'a.footnote-backref', 'a.footnote-ref','span.math-super > a', 'a.footnote-link']
+# Default footnote selector
+selector = 'a.footnote-ref'
 def extract_epub(epub_path, extract_to):
     """
     Extracts the contents of an EPUB file to a specified directory.
@@ -49,9 +54,13 @@ def create_popup_footnotes(html_content):
     # Add the epub namespace if it doesn't exist
     if not 'xmlns:epub' in soup.html.attrs:
             soup.html['xmlns:epub'] = "http://www.idpf.org/2007/ops"
-
-    # Find all footnote references
-    footrefs = soup.select('a.footnote') # Select all <a> tags with class="footnote"，you can change the class name to fit your need
+   # Find all footnote references in the HTML content
+    footrefs = []
+    if auto_find_footnote_tags:
+        for selector in foot_ref_tags_selectors:
+            footrefs += soup.select(selector)
+    else:
+        footrefs = soup.select(selector) # Select all <a> tags with class="footnote"，you can change the class name to fit your need
     if not footrefs:
         print('No footnotes found in the document.')
         return html_content
@@ -63,9 +72,10 @@ def create_popup_footnotes(html_content):
 
     # Process each footnote reference
     for idx, noteref in enumerate(footrefs, start=1):
-        note_id = noteref['href']
+        note_href = noteref['href']
         noteref['id'] = 'nootref' + str(idx)
-        note_text = soup.find(id=note_id[1:])
+        note_id = note_href.split('#')[-1]
+        note_text = soup.find(id=note_id) 
         if not note_text:
             continue
         noteref['epub:type'] = 'noteref'
@@ -153,8 +163,12 @@ if __name__ == "__main__":
     # Add a command line argument
     parser.add_argument('epub_file_path', type=str, help='The path to the EPUB file.')
     parser.add_argument('--need_jump', type=bool, help='Whether to add a link to jump back to the footref.', required=False, default=False)
+    parser.add_argument('--auto_find_footnote_tags', type=bool, help='Whether to automatically find footnote tags.', required=False, default=True)
+    parser.add_argument('--footnote_tags', type=str, help='The CSS selector for the footnote tags.', required=False, default='a.footnote-ref')
     # Parse the command line arguments
     args = parser.parse_args()
     need_jump = args.need_jump
+    auto_find_footnote_tags = args.auto_find_footnote_tags
+    selector = args.footnote_tags
     # Use the command line arguments
     find_and_replace_footnotes(args.epub_file_path)
